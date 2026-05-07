@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToDo アプリ</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:           #f1f5f9;
+            --card:         #ffffff;
+            --text:         #1e293b;
+            --muted:        #64748b;
+            --border:       #e2e8f0;
+            --primary:      #6366f1;
+            --primary-h:    #4f46e5;
+            --danger:       #ef4444;
+            --success:      #22c55e;
+            --shadow:       0 2px 16px rgba(0,0,0,0.08);
+            --shadow-h:     0 8px 32px rgba(0,0,0,0.14);
+            --radius:       14px;
+            --transition:   0.2s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg:     #0f172a;
+            --card:   #1e293b;
+            --text:   #f1f5f9;
+            --muted:  #94a3b8;
+            --border: #334155;
+            --shadow: 0 2px 16px rgba(0,0,0,0.5);
+            --shadow-h: 0 8px 32px rgba(0,0,0,0.6);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: background var(--transition), color var(--transition);
+        }
+
+        .container {
+            max-width: 580px;
+            margin: 0 auto;
+            padding: 40px 20px 80px;
+        }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .header-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .theme-btn {
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 13px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            line-height: 1;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .theme-btn:hover { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+
+        /* ── Input area ── */
+        .input-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px;
+            box-shadow: var(--shadow);
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .priority-select {
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: 9px;
+            padding: 0 10px;
+            color: var(--text);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: border-color var(--transition);
+            -webkit-appearance: none;
+            appearance: none;
+            text-align: center;
+        }
+
+        .priority-select:focus { border-color: var(--primary); }
+
+        .task-input {
+            flex: 1;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: 9px;
+            padding: 10px 14px;
+            font-size: 0.97rem;
+            color: var(--text);
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            min-width: 0;
+        }
+
+        .task-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+        }
+
+        .task-input::placeholder { color: var(--muted); }
+
+        .add-btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 9px;
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+            white-space: nowrap;
+        }
+
+        .add-btn:hover  { background: var(--primary-h); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.35); }
+        .add-btn:active { transform: translateY(0); box-shadow: none; }
+
+        /* ── Filters ── */
+        .filters {
+            display: flex;
+            gap: 4px;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 5px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow);
+        }
+
+        .filter-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            padding: 9px 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--muted);
+            transition: all var(--transition);
+        }
+
+        .filter-btn.active { background: var(--primary); color: #fff; }
+        .filter-btn:not(.active):hover { background: var(--bg); color: var(--text); }
+
+        /* ── Task list ── */
+        .task-list { display: flex; flex-direction: column; gap: 8px; }
+
+        /* ── Task item ── */
+        .task-item {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 13px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow);
+            border-left: 3.5px solid transparent;
+            transition: box-shadow var(--transition), transform var(--transition), opacity var(--transition);
+            animation: slideIn 0.22s ease both;
+        }
+
+        .task-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-h); }
+
+        .task-item.priority-high   { border-left-color: #ef4444; }
+        .task-item.priority-medium { border-left-color: #f59e0b; }
+        .task-item.priority-low    { border-left-color: #22c55e; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .task-item.removing {
+            animation: fadeOut 0.22s ease forwards;
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateX(16px); max-height: 0; margin: 0; padding-top: 0; padding-bottom: 0; }
+        }
+
+        /* ── Checkbox ── */
+        .checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: border-color var(--transition), background var(--transition);
+        }
+
+        .checkbox:hover { border-color: var(--primary); }
+
+        .checkbox.checked {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .checkbox.checked::after {
+            content: '✓';
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        /* ── Task text (editable) ── */
+        .task-text {
+            flex: 1;
+            font-size: 0.95rem;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            padding: 2px 6px;
+            border-radius: 6px;
+            outline: none;
+            transition: background var(--transition);
+            min-width: 0;
+            cursor: text;
+        }
+
+        .task-text:focus { background: var(--bg); outline: 1.5px solid var(--primary); }
+
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+            color: var(--muted);
+        }
+
+        /* ── Priority badge ── */
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 9px;
+            border-radius: 100px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .badge-high   { background: #fee2e2; color: #dc2626; }
+        .badge-medium { background: #fef3c7; color: #d97706; }
+        .badge-low    { background: #dcfce7; color: #16a34a; }
+
+        [data-theme="dark"] .badge-high   { background: #450a0a; color: #f87171; }
+        [data-theme="dark"] .badge-medium { background: #451a03; color: #fbbf24; }
+        [data-theme="dark"] .badge-low    { background: #052e16; color: #4ade80; }
+
+        /* ── Delete button ── */
+        .del-btn {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            padding: 4px 6px;
+            border-radius: 6px;
+            transition: color var(--transition), background var(--transition);
+            flex-shrink: 0;
+            opacity: 0;
+        }
+
+        .task-item:hover .del-btn { opacity: 1; }
+        .del-btn:hover { color: var(--danger); background: #fee2e2; }
+        [data-theme="dark"] .del-btn:hover { background: #450a0a; }
+
+        /* ── Footer ── */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding: 0 4px;
+        }
+
+        .item-count { font-size: 0.83rem; color: var(--muted); }
+
+        .clear-btn {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.83rem;
+            padding: 5px 10px;
+            border-radius: 7px;
+            transition: color var(--transition), background var(--transition);
+        }
+
+        .clear-btn:hover { color: var(--danger); background: #fee2e2; }
+        [data-theme="dark"] .clear-btn:hover { background: #450a0a; }
+
+        /* ── Empty state ── */
+        .empty {
+            text-align: center;
+            padding: 52px 20px;
+            color: var(--muted);
+        }
+
+        .empty .icon { font-size: 3rem; margin-bottom: 12px; }
+        .empty p { font-size: 0.92rem; }
+
+        /* ── Progress bar ── */
+        .progress-wrap {
+            height: 5px;
+            background: var(--border);
+            border-radius: 100px;
+            margin-bottom: 14px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 100px;
+            background: linear-gradient(90deg, #6366f1, #a855f7);
+            transition: width 0.4s ease;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1 class="header-title">📋 ToDo</h1>
+        <button class="theme-btn" id="themeBtn" title="テーマ切り替え">🌙</button>
+    </div>
+
+    <div class="input-card">
+        <select class="priority-select" id="prioritySelect" title="優先度">
+            <option value="medium">📊 中</option>
+            <option value="high">🔴 高</option>
+            <option value="low">🟢 低</option>
+        </select>
+        <input
+            type="text"
+            class="task-input"
+            id="taskInput"
+            placeholder="新しいタスクを追加... (Enter で追加)"
+            maxlength="120"
+            autocomplete="off"
+        >
+        <button class="add-btn" id="addBtn">追加</button>
+    </div>
+
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+
+    <div class="filters">
+        <button class="filter-btn active" data-filter="all">すべて</button>
+        <button class="filter-btn" data-filter="active">未完了</button>
+        <button class="filter-btn" data-filter="completed">完了済み</button>
+    </div>
+
+    <div class="task-list" id="taskList"></div>
+
+    <div class="footer">
+        <span class="item-count" id="itemCount"></span>
+        <button class="clear-btn" id="clearBtn">完了済みを削除</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // ── State ────────────────────────────────────────────────────────────────
+    let tasks  = JSON.parse(localStorage.getItem('todo-tasks') || '[]');
+    let filter = 'all';
+    let dark   = localStorage.getItem('todo-theme') === 'dark';
+
+    const LABELS = { high: '高', medium: '中', low: '低' };
+
+    // ── Init theme ───────────────────────────────────────────────────────────
+    applyTheme();
+
+    // ── Persistence ──────────────────────────────────────────────────────────
+    function save() {
+        localStorage.setItem('todo-tasks', JSON.stringify(tasks));
+    }
+
+    function uid() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    // ── Mutations ────────────────────────────────────────────────────────────
+    function addTask() {
+        const input = document.getElementById('taskInput');
+        const text  = input.value.trim();
+        if (!text) { input.focus(); return; }
+        const priority = document.getElementById('prioritySelect').value;
+        tasks.unshift({ id: uid(), text, completed: false, priority });
+        input.value = '';
+        input.focus();
+        save();
+        render();
+    }
+
+    function toggleTask(id) {
+        const t = tasks.find(t => t.id === id);
+        if (t) { t.completed = !t.completed; save(); render(); }
+    }
+
+    function deleteTask(id) {
+        const el = document.querySelector(`[data-id="${id}"]`);
+        if (!el) return;
+        el.classList.add('removing');
+        el.addEventListener('animationend', () => {
+            tasks = tasks.filter(t => t.id !== id);
+            save();
+            render();
+        }, { once: true });
+    }
+
+    function editTask(id, value) {
+        const t = tasks.find(t => t.id === id);
+        if (!t) return;
+        const v = value.trim();
+        if (v) { t.text = v; save(); }
+        else render(); // restore
+    }
+
+    function clearCompleted() {
+        tasks = tasks.filter(t => !t.completed);
+        save();
+        render();
+    }
+
+    // ── Filter ───────────────────────────────────────────────────────────────
+    document.querySelector('.filters').addEventListener('click', e => {
+        const btn = e.target.closest('.filter-btn');
+        if (!btn) return;
+        filter = btn.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+        render();
+    });
+
+    // ── Theme ────────────────────────────────────────────────────────────────
+    function applyTheme() {
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.getElementById('themeBtn').textContent = dark ? '☀️' : '🌙';
+    }
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+        dark = !dark;
+        localStorage.setItem('todo-theme', dark ? 'dark' : 'light');
+        applyTheme();
+    });
+
+    // ── Add button & Enter key ───────────────────────────────────────────────
+    document.getElementById('addBtn').addEventListener('click', addTask);
+    document.getElementById('taskInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') addTask();
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', clearCompleted);
+
+    // ── Render ───────────────────────────────────────────────────────────────
+    function render() {
+        const list = document.getElementById('taskList');
+        const total     = tasks.length;
+        const doneCount = tasks.filter(t => t.completed).length;
+        const activeCount = total - doneCount;
+
+        // Progress
+        const pct = total ? Math.round((doneCount / total) * 100) : 0;
+        document.getElementById('progressBar').style.width = pct + '%';
+
+        // Count
+        document.getElementById('itemCount').textContent =
+            activeCount > 0 ? `${activeCount} 件 未完了` : (total ? '全て完了！🎉' : '');
+
+        const filtered = tasks.filter(t => {
+            if (filter === 'active')    return !t.completed;
+            if (filter === 'completed') return  t.completed;
+            return true;
+        });
+
+        list.innerHTML = '';
+
+        if (filtered.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'empty';
+            const msgs = {
+                all:       { icon: '📝', text: 'タスクを追加してみましょう' },
+                active:    { icon: '🎉', text: 'すべてのタスクが完了しています！' },
+                completed: { icon: '✅', text: '完了済みタスクはありません' },
+            };
+            const m = msgs[filter];
+            empty.innerHTML = `<div class="icon">${m.icon}</div><p>${m.text}</p>`;
+            list.appendChild(empty);
+            return;
+        }
+
+        filtered.forEach(task => {
+            const item = document.createElement('div');
+            item.className = `task-item priority-${task.priority}${task.completed ? ' completed' : ''}`;
+            item.dataset.id = task.id;
+
+            // Checkbox
+            const cb = document.createElement('div');
+            cb.className = `checkbox${task.completed ? ' checked' : ''}`;
+            cb.addEventListener('click', () => toggleTask(task.id));
+
+            // Text input (inline editable)
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.className = 'task-text';
+            inp.value = task.text;
+            inp.addEventListener('blur', () => editTask(task.id, inp.value));
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Enter')  { inp.blur(); }
+                if (e.key === 'Escape') { inp.value = task.text; inp.blur(); }
+            });
+
+            // Priority badge
+            const badge = document.createElement('span');
+            badge.className = `badge badge-${task.priority}`;
+            badge.textContent = LABELS[task.priority];
+
+            // Delete button
+            const del = document.createElement('button');
+            del.className = 'del-btn';
+            del.title = '削除';
+            del.textContent = '✕';
+            del.addEventListener('click', () => deleteTask(task.id));
+
+            item.append(cb, inp, badge, del);
+            list.appendChild(item);
+        });
+    }
+
+    render();
+}());
+</script>
+</body>
+</html>
