@@ -85,6 +85,7 @@
             padding: 14px;
             box-shadow: var(--shadow);
             display: flex;
+            align-items: center;
             gap: 10px;
             margin-bottom: 12px;
         }
@@ -93,16 +94,15 @@
             background: var(--bg);
             border: 1.5px solid var(--border);
             border-radius: 9px;
-            padding: 0 10px;
+            padding: 0 12px;
             color: var(--text);
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 600;
             cursor: pointer;
             outline: none;
             transition: border-color var(--transition);
-            -webkit-appearance: none;
-            appearance: none;
-            text-align: center;
+            min-width: 80px;
+            height: 42px;
         }
 
         .priority-select:focus { border-color: var(--primary); }
@@ -355,9 +355,9 @@
 
     <div class="input-card">
         <select class="priority-select" id="prioritySelect" title="優先度">
-            <option value="medium">📊 中</option>
-            <option value="high">🔴 高</option>
-            <option value="low">🟢 低</option>
+            <option value="medium">▲ 中</option>
+            <option value="high">● 高</option>
+            <option value="low">▼ 低</option>
         </select>
         <input
             type="text"
